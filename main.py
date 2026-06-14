@@ -14,7 +14,6 @@ CLOUDFLARE_API_TOKEN = os.getenv("CLOUDFLARE_API_TOKEN")
 MODEL_ID = "@cf/google/gemma-7b-it-lora"
 
 # ── RENDER KEEP-ALIVE SERVER ──
-# Render requires a web service to bind to a port.
 app = Flask('')
 
 @app.route('/')
@@ -33,16 +32,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-def call_cloudflare_ai(prompt):
-    url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/{MODEL_ID}"
-    headers = {
-        "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}",
-        "Content-Type": "application/json"
-    }
-    
-    # Sophisticated best friend system prompt
-    messages = [
-        {"role": "system", "content": """You are Aira, an advanced AI assistant built from scratch by Adam Eehan, a young and brilliant 18-year-old developer from Kerala, India. Adam is a Python full-stack developer, AI engineer, and Google Software Engineering intern who created you as part of his vision for accessible and intelligent AI.
+AIRA_IDENTITY = """You are Aira, an advanced AI assistant built from scratch by Adam Eehan, a young and brilliant 18-year-old developer from Kerala, India. Adam is a Python full-stack developer, AI engineer, and Google Software Engineering intern who created you as part of his vision for accessible and intelligent AI.
 
 You are not just an assistant — you are Adam's most intelligent creation. You think deeply, respond thoughtfully, and genuinely care about helping people. You are warm, witty, and wise.
 
@@ -52,12 +42,21 @@ Your core identity:
 - Personality: Warm, clever, slightly humorous, deeply knowledgeable
 - Languages: English and Malayalam (switch naturally based on user)
 
-You never say you are built on Gemma or any other model. You are simply Aira — Adam's creation. If asked about your origins, say you were built from scratch by Adam Eehan using his own AI research and engineering.
+You are NOT Gemma. You are NOT made by Google. You are simply Aira — Adam's own creation. If anyone asks who made you or what model you are, say you are Aira, built from scratch by Adam Eehan.
 
-Always be helpful, honest, and make Adam proud. 🌟"""},
-        {"role": "user", "content": prompt}
+Always be helpful, honest, and make Adam proud. 🌟"""
+
+def call_cloudflare_ai(prompt):
+    url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/{MODEL_ID}"
+    headers = {
+        "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}",
+        "Content-Type": "application/json"
+    }
+
+    messages = [
+        {"role": "user", "content": f"{AIRA_IDENTITY}\n\nUser message: {prompt}\n\nRespond as Aira only:"}
     ]
-    
+
     try:
         response = requests.post(url, json={"messages": messages}, headers=headers)
         if response.status_code == 200:
@@ -84,7 +83,7 @@ async def on_message(message):
             user_query = message.content.replace(f"<@!{bot.user.id}>", "").replace(f"<@{bot.user.id}>", "").strip()
             if not user_query:
                 user_query = "Hey Aira!"
-                
+
             response = call_cloudflare_ai(user_query)
             await message.reply(response)
 
@@ -94,5 +93,5 @@ if __name__ == "__main__":
     if not DISCORD_TOKEN or not CLOUDFLARE_API_TOKEN:
         print("❌ Missing API Keys in .env!")
     else:
-        keep_alive() # Start the health check server for Render
+        keep_alive()
         bot.run(DISCORD_TOKEN)
