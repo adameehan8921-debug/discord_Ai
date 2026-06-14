@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: aira-discord-bot
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
